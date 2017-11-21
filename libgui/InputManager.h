@@ -22,7 +22,9 @@
 #define INPUTMANAGER_H
 
 #include "GuiTypes.h"
-
+#ifdef RVL_LIBWIIDRC
+#include <wiidrc/wiidrc.h>
+#endif
 namespace menu {
 
 class Input

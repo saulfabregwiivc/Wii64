@@ -116,6 +116,7 @@ char miniMenuActive;
        char creditsScrolling;
        char padNeedScan;
        char wpadNeedScan;
+	   char drcNeedScan;
        char shutdown = 0;
 	   char nativeSaveDevice;
 	   char saveStateDevice;
@@ -129,7 +130,7 @@ char miniMenuActive;
 	   char loadButtonSlot;
 
 static struct {
-	char* key;
+	const char* key;
 	char* value; // Not a string, but a char pointer
 	char  min, max;
 } OPTIONS[] =
@@ -142,6 +143,9 @@ static struct {
   { "ScreenMode", &screenMode, SCREENMODE_4x3, SCREENMODE_16x9_PILLARBOX },
   { "VideoMode", &videoMode, VIDEOMODE_AUTO, VIDEOMODE_576P },
   { "Core", ((char*)&dynacore)+3, DYNACORE_INTERPRETER, DYNACORE_PURE_INTERP },
+#ifdef RVL_NANDPAGE
+  { "NANDPage", &NANDPage, NANDPAGE_DISABLE, NANDPAGE_ENABLE },
+#endif
   { "NativeDevice", &nativeSaveDevice, NATIVESAVEDEVICE_SD, NATIVESAVEDEVICE_CARDB },
   { "StatesDevice", &saveStateDevice, SAVESTATEDEVICE_SD, SAVESTATEDEVICE_USB },
   { "AutoSave", &autoSave, AUTOSAVE_DISABLE, AUTOSAVE_ENABLE },
@@ -182,7 +186,7 @@ void (*fBGetFrameBufferInfo)(void *p) = NULL;
 // Read PAD format from Classic if available
 u16 readWPAD(void);
 
-void load_config(char *loaded_path) {
+void load_config(const char *loaded_path) {
 	//config stuff
 	fileBrowser_file configFile_file;
 	char prefix[16];
@@ -217,6 +221,14 @@ void load_config(char *loaded_path) {
 			load_configurations(f, &controller_Classic);			//write out Classic controller mappings
 			fclose(f);
 		}
+#ifdef RVL_LIBWIIDRC
+		sprintf(configFile_file.name, "%s%s", prefix, "controlD.cfg");
+		f = fopen( configFile_file.name, "r" );  //attempt to open file
+		if(f) {
+			load_configurations(f, &controller_DRC);			//write out DRC controller mappings
+			fclose(f);
+		}
+#endif
 		sprintf(configFile_file.name, "%s%s", prefix, "controlN.cfg");
 		f = fopen( configFile_file.name, "r" );  //attempt to open file
 		if(f) {
@@ -249,11 +261,21 @@ int main(int argc, char* argv[]) {
 	_break();
 #endif
 
+	/* Reload to IOS58 for USB */
+	if(IOS_GetVersion() != 58)
+		IOS_ReloadIOS(58);
+
 	Initialise(); // Stock OGC initialization
 #ifndef HW_RVL
   DVD_Init();  
 #endif
 	MenuContext *menu = new MenuContext(vmode);
+	if(argc > 2 && argv[1] != NULL && argv[2] != NULL)
+	{
+		menu->Autoboot = true;
+		strncpy(menu->AutobootPath, argv[1], sizeof(menu->AutobootPath));
+		strncpy(menu->AutobootROM, argv[2], sizeof(menu->AutobootROM));
+	}
 	VIDEO_SetPostRetraceCallback (ScanPADSandReset);
 
 	// Default Settings
@@ -266,13 +288,16 @@ int main(int argc, char* argv[]) {
 #endif
 	printToScreen    = 1; // Show DEBUG text on screen
 	printToSD        = 0; // Disable SD logging
-	Timers.limitVIs  = LIMITVIS_WAIT_FOR_VI; // Sync to VI
+	Timers.limitVIs  = 0; // Sync to Audio
 	saveEnabled      = 0; // Don't save game
 	nativeSaveDevice = 0; // SD
 	saveStateDevice	 = 0; // SD
 	autoSave         = 1; // Auto Save Game
 	creditsScrolling = 0; // Normal menu for now
 	dynacore         = 1; // Dynarec
+#ifdef RVL_NANDPAGE
+	NANDPage         = 0; // NAND Pagefile
+#endif
 	screenMode		 = 0; // Stretch FB horizontally
 	videoMode		 = VIDEOMODE_AUTO;
 	padAutoAssign	 = PADAUTOASSIGN_AUTOMATIC;
@@ -299,19 +324,31 @@ int main(int argc, char* argv[]) {
 
 
 #ifdef HW_RVL
-	load_config(&argv[0][0]);
-	// Handle options passed in through arguments
-	int i;
-	for(i=1; i<argc; ++i){
-		handleConfigPair(argv[i]);
-	}
-#else
-	load_config("sd");
-#endif
-	//Switch to MiniMenu if active
-	if (miniMenuActive)
+	if(argc != 0 && argv != 0)
 	{
+		load_config(&argv[0][0]);
+		// Handle options passed in through arguments
+		int i;
+		for(i=1; i<argc; ++i){
+			handleConfigPair(argv[i]);
+		}
+	}
+	else
+#endif
+		load_config("sd");
+
+	if (miniMenuActive)
 		menu->setUseMiniMenu(true);
+
+	if (menu->Autoboot)
+	{
+		// after init wpad wait a bit
+		sleep(2);
+		menu->setActiveFrame(MenuContext::FRAME_LOADROM);
+	}
+	else if (miniMenuActive)
+	{
+		//Switch to MiniMenu if active
 		menu->setActiveFrame(MenuContext::FRAME_MAIN);
 	}
 	while (menu->isRunning()) {}
@@ -337,7 +374,21 @@ u16 readWPAD(void){
 	   	b |= (w & CLASSIC_CTRL_BUTTON_A) ? PAD_BUTTON_A : 0;
 	   	b |= (w & CLASSIC_CTRL_BUTTON_B) ? PAD_BUTTON_B : 0;
 	}
+#ifdef RVL_LIBWIIDRC
+	if(drcNeedScan){ WiiDRC_ScanPads(); drcNeedScan = 0; }
 
+	if(WiiDRC_Inited() && WiiDRC_Connected())
+	{
+		const WiiDRCData* drc = WiiDRC_Data();
+	   	u16 w = drc->button;
+	   	b |= (w & WIIDRC_BUTTON_UP)    ? PAD_BUTTON_UP    : 0;
+	   	b |= (w & WIIDRC_BUTTON_DOWN)  ? PAD_BUTTON_DOWN  : 0;
+	   	b |= (w & WIIDRC_BUTTON_LEFT)  ? PAD_BUTTON_LEFT  : 0;
+	   	b |= (w & WIIDRC_BUTTON_RIGHT) ? PAD_BUTTON_RIGHT : 0;
+		b |= (w & WIIDRC_BUTTON_A) ? PAD_BUTTON_A : 0;
+	   	b |= (w & WIIDRC_BUTTON_B) ? PAD_BUTTON_B : 0;
+	}
+#endif
 	return b;
 }
 #else
@@ -555,7 +606,7 @@ static void rsp_info_init(void){
 void stop_it() { r4300.stop = 1; }
 
 void ScanPADSandReset(u32 dummy) {
-	padNeedScan = wpadNeedScan = 1;
+	drcNeedScan = padNeedScan = wpadNeedScan = 1;
 	if(!((*(u32*)0xCC003000)>>16))
 		stop_it();
 }

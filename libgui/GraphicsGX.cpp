@@ -69,8 +69,8 @@ Graphics::Graphics(GXRModeObj *rmode)
 		break;
 	}
 
-	vmode->viWidth = 720;
-	vmode->viXOrigin = 0;
+	vmode->viWidth = 680;
+	vmode->viXOrigin = (VI_MAX_WIDTH_PAL - 680) / 2;
 #ifdef HW_RVL
 	//if(screenMode)	VIDEO_SetAspectRatio(VI_DISPLAY_BOTH, VI_ASPECT_1_1);
 	//else			VIDEO_SetAspectRatio(VI_DISPLAY_BOTH, VI_ASPECT_3_4);

@@ -1,6 +1,8 @@
 # Makefile for Wii-specific code
 
 CXXFLAGS	+= -DWII -DHW_RVL -DUSE_EXPANSION -DMEM2XFB -DUSE_INLINE_STORES -D__wii__
+CXXFLAGS	+= -DRVL_NANDPAGE #comment out to remove NAND Page option in settings
+CXXFLAGS	+= -DRVL_LIBWIIDRC #comment out to remove libwiidrc requirement
 
 LDFLAGS		+= -mrvl
 
@@ -13,7 +15,8 @@ OBJ		+= \
 
 OBJ_INPUT	+= \
 		gc_input/controller-Classic.o \
+		gc_input/controller-DRC.o \
 		gc_input/controller-WiimoteNunchuk.o
 
 LIB		+= -lwiiuse -lbte -lz
-
+LIB		+= -lwiidrc #comment out to remove libwiidrc requirement

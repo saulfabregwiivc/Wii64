@@ -25,8 +25,8 @@
 
 // Hold 8MB worth of recompiled data max on Wii, 5 on GC
 #ifdef HW_RVL
-#ifdef MEM2XFB
-#define RECOMP_CACHE_SIZE (10*1024*1024)
+#ifdef MEM2XFB //this is not in MEM2 so 10MB is unstable...
+#define RECOMP_CACHE_SIZE (8*1024*1024)
 #else
 #define RECOMP_CACHE_SIZE (8*1024*1024)
 #endif

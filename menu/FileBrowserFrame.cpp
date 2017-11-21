@@ -18,6 +18,7 @@
  *
 **/
 
+#define _GNU_SOURCE
 #include <math.h>
 #include <cstring>
 #include <cstdlib>
@@ -245,6 +246,35 @@ void FileBrowserFrame::drawChildren(menu::Graphics &gfx)
 				}
 			}
 #endif //HW_RVL
+#ifdef RVL_LIBWIIDRC
+			else if (i == 0 && WiiDRC_Inited() && WiiDRC_Connected() && (WiiDRC_ButtonsHeld() ^ previousButtonsDRC[i]))
+			{
+				u32 currentButtonsDownDRC = (WiiDRC_ButtonsHeld() ^ previousButtonsDRC[i]) & WiiDRC_ButtonsHeld();
+				previousButtonsDRC[i] = WiiDRC_ButtonsHeld();
+				if (currentButtonsDownDRC & WIIDRC_BUTTON_R)
+				{
+					//move to next set & return
+					if(current_page+1 < max_page) 
+					{
+						current_page +=1;
+						fileBrowserFrame_FillPage();
+						menu::Focus::getInstance().clearPrimaryFocus();
+					}
+					break;
+				}
+				else if (currentButtonsDownDRC & WIIDRC_BUTTON_L)
+				{
+					//move to the previous set & return
+					if(current_page > 0) 
+					{
+						current_page -= 1;
+						fileBrowserFrame_FillPage();
+						menu::Focus::getInstance().clearPrimaryFocus();
+					}
+					break;
+				}
+			}
+#endif
 		}
 
 		//Draw buttons
@@ -443,7 +473,7 @@ void fileBrowserFrame_LoadFile(int i)
 		// We must select this file
 		int ret = loadROM( &dir_entries[i] );
 		
-		if(!ret){	// If the read succeeded.
+		if(!ret && !pMenuContext->Autoboot){	// If the read succeeded.
 			strcpy(feedback_string, "Loaded ");
 			strncat(feedback_string, filenameFromAbsPath(dir_entries[i].name), 36-7);
 
@@ -484,7 +514,7 @@ void fileBrowserFrame_LoadFile(int i)
 
 			menu::MessageBox::getInstance().setMessage(RomInfo);
 		}
-		else		// If not.
+		else if(ret)		// If not.
 		{
   		switch(ret) {
     		case ROM_CACHE_ERROR_READ:
@@ -530,4 +560,14 @@ void fileBrowserFrame_LoadFile(int i)
 		pMenuContext->setActiveFrame(MenuContext::FRAME_MAIN);
 		if(hasLoadedROM) Func_SetPlayGame();
 	}
+}
+
+
+void fileBrowserFrame_AutoBootFile()
+{
+	int i;
+	for(i = 0; i < num_entries - 1; i++)
+		if(strcasestr(dir_entries[i].name, pMenuContext->AutobootROM) != NULL)
+			break;
+	fileBrowserFrame_LoadFile(i);
 }
