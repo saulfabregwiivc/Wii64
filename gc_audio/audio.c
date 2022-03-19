@@ -60,7 +60,7 @@ extern float VILimit;
 static char buffer[BUFFER_SIZE];
 static const char *end_ptr = buffer + BUFFER_SIZE;
 static char *write_ptr, *read_ptr;
-static volatile int buffered;
+static int buffered;
 static unsigned int freq;
 static AESNDPB *voice;
 
@@ -85,7 +85,6 @@ static void reset_buffer(void)
 	write_ptr = buffer;
 	read_ptr = buffer;
 	buffered = 0;
-	memset(buffer, 0, BUFFER_SIZE);
 }
 
 EXPORT void CALL AiDacrateChanged(int SystemType)
@@ -102,6 +101,7 @@ EXPORT void CALL AiDacrateChanged(int SystemType)
 		case SYSTEM_MPAL:
 			freq = 48628316 / (*AudioInfo.AI_DACRATE_REG + 1);
 			break;
+              default:
             freq = DEFAULT_FREQUENCY;
 	}
 	
