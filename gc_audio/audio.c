@@ -56,16 +56,20 @@
 AUDIO_INFO AudioInfo;
 extern float VILimit;
 #define DEFAULT_FREQUENCY 33600
+#ifdef RVL_LIBWIIDRC
+#define BUFFER_SIZE (DSP_STREAMBUFFER_SIZE * 32)
+#else
 #define BUFFER_SIZE (DSP_STREAMBUFFER_SIZE * 64)
+#endif
 static char buffer[BUFFER_SIZE];
 static const char *end_ptr = buffer + BUFFER_SIZE;
 static char *write_ptr, *read_ptr;
-static int buffered;
+static volatile int buffered;
 static unsigned int freq;
 static AESNDPB *voice;
 
 char audioEnabled;
-char scalePitch = 1;
+char scalePitch = 0;
 
 static void aesnd_callback(AESNDPB *pb, uint32_t state)
 {
@@ -85,10 +89,12 @@ static void reset_buffer(void)
 	write_ptr = buffer;
 	read_ptr = buffer;
 	buffered = 0;
+	memset(buffer, 0, BUFFER_SIZE);
 }
 
 EXPORT void CALL AiDacrateChanged(int SystemType)
 {
+	freq = DEFAULT_FREQUENCY;
 	
 	switch (SystemType)
 	{
@@ -101,8 +107,6 @@ EXPORT void CALL AiDacrateChanged(int SystemType)
 		case SYSTEM_MPAL:
 			freq = 48628316 / (*AudioInfo.AI_DACRATE_REG + 1);
 			break;
-              default:
-            freq = DEFAULT_FREQUENCY;
 	}
 	
 	AESND_SetVoiceFrequency(voice, freq);
@@ -111,10 +115,13 @@ EXPORT void CALL AiDacrateChanged(int SystemType)
 EXPORT void CALL AiLenChanged(void)
 {
 	if (audioEnabled) {
-
+#ifdef RVL_LIBWIIDRC
+		while(buffered > (DSP_STREAMBUFFER_SIZE * 24))
+			usleep(100);
+#endif
 		uint32_t level = IRQ_Disable();
 		
-		char *stream = AudioInfo.RDRAM + (*AudioInfo.AI_DRAM_ADDR_REG & 0xFFFFFF);
+		unsigned char *stream = AudioInfo.RDRAM + (*AudioInfo.AI_DRAM_ADDR_REG & 0xFFFFFF);
 		int length = *AudioInfo.AI_LEN_REG;
 		
 		if (buffered + length < BUFFER_SIZE) {
@@ -131,7 +138,11 @@ EXPORT void CALL AiLenChanged(void)
 			} while (length > 0);
 		}
 
+#ifdef RVL_LIBWIIDRC
+		if (scalePitch)
+#else
 		if (scalePitch || Timers.vis > VILimit)
+#endif
 			AESND_SetVoiceFrequency(voice, freq * (Timers.vis / VILimit));
 			
 		IRQ_Restore(level);
