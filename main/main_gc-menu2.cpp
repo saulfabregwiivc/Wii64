@@ -307,7 +307,7 @@ int main(int argc, char* argv[]) {
 #endif
 	printToScreen    = 1; // Show DEBUG text on screen
 	printToSD        = 0; // Disable SD logging
-	Timers.limitVIs  = LIMITVIS_WAIT_FOR_VI; // Sync to VI
+	Timers.limitVIs  = 0; // Sync to Audio
 	saveEnabled      = 0; // Don't save game
 	nativeSaveDevice = 0; // SD
 	saveStateDevice	 = 0; // SD
