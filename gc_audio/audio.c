@@ -141,7 +141,7 @@ EXPORT void CALL AiLenChanged(void)
 #ifdef RVL_LIBWIIDRC
 		if (scalePitch)
 #else
-		if (scalePitch || Timers.vis > VILimit)
+		if (scalePitch)// || Timers.vis > VILimit)
 #endif
 			AESND_SetVoiceFrequency(voice, freq * (Timers.vis / VILimit));
 			
