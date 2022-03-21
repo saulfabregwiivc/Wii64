@@ -1,6 +1,7 @@
 # Makefile for Wii-specific code
 
 CXXFLAGS	+= -DWII -DHW_RVL -DUSE_EXPANSION -D__wii__
+CXXFLAGS	+= -DRVL_NANDPAGE #comment out to remove NAND Page option in settings
 
 LDFLAGS		+= -mrvl
 
