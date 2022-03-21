@@ -36,8 +36,23 @@
 
 #ifdef HW_RVL
 #include "../gc_memory/MEM2.h"
+//for MEM2 only
+#define BLOCK_SIZE  (512*1024)
+#define BLOCK_MASK  (BLOCK_SIZE-1)
+#define OFFSET_MASK (0xFFFFFFFF-BLOCK_MASK)
+#define BLOCK_SHIFT (19)	//only change ME and BLOCK_SIZE
+#define MAX_ROMSIZE (64*1024*1024)
+#define NUM_BLOCKS  (MAX_ROMSIZE/BLOCK_SIZE)
+#define LOAD_SIZE   (32*1024)
+static char* ROMBlocks[NUM_BLOCKS];
+static int   ROMBlocksLRU[NUM_BLOCKS];
+static void ensure_block(u32 block);
+#ifdef RVL_NANDPAGE
+//for NAND Page
+char NANDPage, NANDPageCur;
 #include "../vm/wii_vm.h"
 static char* ROMBase = ROMCACHE_LO;
+#endif
 #else
 #include "../gc_memory/ARAM.h"
 #define BLOCK_SIZE  (4*1024)
@@ -89,8 +104,8 @@ void ROMCache_init(fileBrowser_file* f){
 }
 
 void ROMCache_deinit(){
-#ifdef HW_RVL
-	if (ROMTooBig) {
+#ifdef RVL_NANDPAGE
+	if (NANDPageCur && ROMTooBig) {
 		ROMBase = ROMCACHE_LO;
 		VM_Deinit();
 	}
@@ -98,10 +113,10 @@ void ROMCache_deinit(){
 }
 
 void* ROMCache_pointer(u32 rom_offset){
-#ifdef HW_RVL
-	return ROMBase + rom_offset;
+#ifdef RVL_NANDPAGE
+	if(NANDPageCur)
+		return ROMBase + rom_offset;
 #endif
-#ifdef HW_DOL
 #ifdef PROFILE
 	start_section(ROMREAD_SECTION);
 #endif
@@ -123,7 +138,6 @@ void* ROMCache_pointer(u32 rom_offset){
 #endif
 }
 
-#ifdef HW_DOL
 static void ROMCache_load_block(char* dst, u32 rom_offset){
   if((hasLoadedROM) && (!r4300.stop))
     pauseAudio();
@@ -158,13 +172,14 @@ static void ensure_block(u32 block){
 		ROMBlocks[max_i] = 0; // Evict the LRU block
 	}
 }
-#endif
 
 void ROMCache_read(u8* ram_dest, u32 rom_offset, u32 length){
-#ifdef HW_RVL
-	memcpy(ram_dest, ROMBase + rom_offset, length);
+#ifdef RVL_NANDPAGE
+	if(NANDPageCur) {
+		memcpy(ram_dest, ROMBase + rom_offset, length);
+		return;
+	}
 #endif
-#ifdef HW_DOL
 #ifdef PROFILE
   start_section(ROMREAD_SECTION);
 #endif
@@ -198,7 +213,6 @@ void ROMCache_read(u8* ram_dest, u32 rom_offset, u32 length){
 #ifdef PROFILE
 	end_section(ROMREAD_SECTION);
 #endif
-#endif
 }
 
 int ROMCache_load(fileBrowser_file* file){
@@ -214,44 +228,48 @@ int ROMCache_load(fileBrowser_file* file){
 #endif
 	PRINT(txt);
 
-#ifdef HW_RVL
-	unsigned i = 0, loads_til_update = 0;
-	int bytes_read;
-	if (ROMTooBig) {
-		void* VMBase = VM_Init(rom_length, ROMCACHE_SIZE);
-		if (VMBase == NULL)
-			return ROM_CACHE_ERROR_READ;
-		
-		ROMBase = VMBase;
+#ifdef RVL_NANDPAGE
+	if(NANDPage)
+	{
+		NANDPageCur = 1;
+		unsigned i = 0, loads_til_update = 0;
+		int bytes_read;
+		if (ROMTooBig) {
+			void* VMBase = VM_Init(rom_length, ROMCACHE_SIZE);
+			if (VMBase == NULL)
+				return ROM_CACHE_ERROR_READ;
+
+			ROMBase = VMBase;
+		}
+		do {
+			bytes_read = romFile_readFile(file, ROMBase + i, 32*KB);
+			if (bytes_read < 0)
+				return ROM_CACHE_ERROR_READ;
+
+			//initialize byteswapping if it isn't already
+			if(!readBefore)
+			{
+				byte_swap_type = init_byte_swap(*(unsigned int*)ROMBase);
+				if(byte_swap_type == BYTE_SWAP_BAD) {
+				  romFile_deinit(&ROMFile);
+				  return ROM_CACHE_INVALID_ROM;
+			  }
+				readBefore = 1;
+			}
+
+			byte_swap(ROMBase + i, bytes_read, byte_swap_type);
+			i += bytes_read;
+
+			if (!loads_til_update--) {
+				LoadingBar_showBar((float)i / rom_length, txt);
+				loads_til_update = 16;
+			}
+		} while (bytes_read > 0);
+		romFile_deinit(file);
+		return 0;
 	}
-	do {
-		bytes_read = romFile_readFile(file, ROMBase + i, 32*KB);
-		if (bytes_read < 0)
-			return ROM_CACHE_ERROR_READ;
-		
-		//initialize byteswapping if it isn't already
-		if(!readBefore)
-		{
-			byte_swap_type = init_byte_swap(*(unsigned int*)ROMBase);
- 			if(byte_swap_type == BYTE_SWAP_BAD) {
- 			  romFile_deinit(&ROMFile);
- 			  return ROM_CACHE_INVALID_ROM;
-		  }
- 			readBefore = 1;
-		}
-		
-		byte_swap(ROMBase + i, bytes_read, byte_swap_type);
-		i += bytes_read;
-		
-		if (!loads_til_update--) {
-			LoadingBar_showBar((float)i / rom_length, txt);
-			loads_til_update = 16;
-		}
-	} while (bytes_read > 0);
-	romFile_deinit(file);
-	return 0;
+	NANDPageCur = 0;
 #endif
-#ifdef HW_DOL
 	romFile_seekFile(&ROMFile, 0, FILE_BROWSER_SEEK_SET);
 	
 	u32 offset = 0,loads_til_update = 0;
@@ -300,9 +318,7 @@ int ROMCache_load(fileBrowser_file* file){
 			ROMBlocksLRU[i] = i;
 	}
 	
-	SETLOADPROG( -1.0f );
 	return 0;
-#endif
 }
 
 
