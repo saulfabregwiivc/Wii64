@@ -314,6 +314,9 @@ int main(int argc, char* argv[]) {
 	autoSave         = 1; // Auto Save Game
 	creditsScrolling = 0; // Normal menu for now
 	dynacore         = 1; // Dynarec
+	#ifdef RVL_NANDPAGE
+	NANDPage         = 0; // NAND Pagefile
+#endif
 #ifndef HW_RVL
 	count_per_op	 = COUNT_PER_OP_3;
 	screenMode		 = SCREENMODE_4x3;
