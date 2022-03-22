@@ -24,10 +24,10 @@
 #define RECOMP_CACHE_H
 
 #ifdef HW_RVL
-#ifdef GLN64_GX
-#define RECOMP_CACHE_SIZE (10*1024*1024)	// glN64 Wii
-#else
-#define RECOMP_CACHE_SIZE (9*1024*1024)		// Rice Wii
+#ifdef GLN64_GX  // for glN64 GFX on Wii this is not in MEM2 so 10MB is unstable...
+#define RECOMP_CACHE_SIZE (8*1024*1024)	// glN64 Wii 
+#else  // for Rice GFX on Wii this is not in MEM2 so 10MB is unstable...
+#define RECOMP_CACHE_SIZE (8*1024*1024)		// Rice Wii
 #endif
 #else
 # ifdef USE_EXPANSION
