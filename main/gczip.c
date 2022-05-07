@@ -9,7 +9,6 @@
  * For maximum compression, I'd recommend using 7Zip,
  *	7za a -tzip -mx=9 rom.zip rom.smc
  ****************************************************************************/
-#if 0
 #include <gccore.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -71,4 +70,3 @@ int inflate_chunk(void* dst, void* src, int length){
 	zipoffset = 0;
 	return bufferoffset;
 }
-#endif
