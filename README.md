@@ -1,5 +1,7 @@
 # README : Wii64 / Cube64
 
+This WiiFlow MOD branch by me has also some updated gamehacks from: https://github.com/Klozz/Daedalusx64/blob/master/Daedalus.cht
+
 > LICENSE:
 >     This software is licensed under the GNU General Public License v2
 >       which is available at: http://www.gnu.org/licenses/gpl-2.0.txt
