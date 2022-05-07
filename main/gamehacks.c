@@ -102,19 +102,19 @@ void hack_pkm_snap_j() {
 // Top Gear Hyper-Bike (E) 
 void hack_topgear_hb_e() {
 	//Game Playable Fix (Gent)
-	compare_hword_write_byte(0x800021EE, 0xD10021EE, 0x0001, 0);
+	compare_hword_write_byte(0x800021EE, 0x800021EE, 0x0001, 0);
 }
 
 // Top Gear Hyper-Bike (J) 
 void hack_topgear_hb_j() {
 	//Game Playable Fix (Gent)
-	compare_hword_write_byte(0x8000225A, 0xD100225A, 0x0001, 0);
+	compare_hword_write_byte(0x8000225A, 0x8000225A, 0x0001, 0);
 }
 
 // Top Gear Hyper-Bike (U) 
 void hack_topgear_hb_u() {
 	//Game Playable Fix (Gent)
-	compare_hword_write_hword(0x800021EA, 0xD10021EA, 0x0001, 0);
+	compare_hword_write_hword(0x800021EA, 0x800021EA, 0x0001, 0);
 }
 
 // Top Gear Overdrive (E) 
