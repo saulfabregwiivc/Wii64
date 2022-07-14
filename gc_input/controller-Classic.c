@@ -51,20 +51,21 @@ static int getStickValue(joystick_t* j, float maxMag, int axis, int maxAbsValue)
 }
 
 enum {
-	L_STICK_AS_ANALOG = 1, R_STICK_AS_ANALOG = 2,
+	LSTICK_AS_ANALOG = 1, RSTICK_AS_ANALOG = 2,
 };
 
 enum {
-	L_STICK_L = 0x01 << 16,
-	L_STICK_R = 0x02 << 16,
-	L_STICK_U = 0x04 << 16,
-	L_STICK_D = 0x08 << 16,
-	R_STICK_L = 0x10 << 16,
-	R_STICK_R = 0x20 << 16,
-	R_STICK_U = 0x40 << 16,
-	R_STICK_D = 0x80 << 16,
+	LSTICK_L = 0x01 << 24,
+	LSTICK_R = 0x02 << 24,
+	LSTICK_U = 0x04 << 24,
+	LSTICK_D = 0x08 << 24,
+	RSTICK_L = 0x10 << 24,
+	RSTICK_R = 0x20 << 24,
+	RSTICK_U = 0x40 << 24,
+	RSTICK_D = 0x80 << 24,
 };
 
+#define NUM_CLASSIC_BUTTONS 24
 static button_t buttons[] = {
 	{  0, ~0,                         "None" },
 	{  1, CLASSIC_CTRL_BUTTON_UP,     "D-Up" },
@@ -82,14 +83,16 @@ static button_t buttons[] = {
 	{ 13, CLASSIC_CTRL_BUTTON_PLUS,   "+" },
 	{ 14, CLASSIC_CTRL_BUTTON_MINUS,  "-" },
 	{ 15, CLASSIC_CTRL_BUTTON_HOME,   "Home" },
-	{ 16, R_STICK_U,                  "RS-Up" },
-	{ 17, R_STICK_L,                  "RS-Left" },
-	{ 18, R_STICK_R,                  "RS-Right" },
-	{ 19, R_STICK_D,                  "RS-Down" },
-	{ 20, L_STICK_U,                  "LS-Up" },
-	{ 21, L_STICK_L,                  "LS-Left" },
-	{ 22, L_STICK_R,                  "LS-Right" },
-	{ 23, L_STICK_D,                  "LS-Down" },
+	{ 16, RSTICK_U,                   "RS-Up" },
+	{ 17, RSTICK_L,                   "RS-Left" },
+	{ 18, RSTICK_R,                   "RS-Right" },
+	{ 19, RSTICK_D,                   "RS-Down" },
+	{ 20, LSTICK_U,                   "LS-Up" },
+	{ 21, LSTICK_L,                   "LS-Left" },
+	{ 22, LSTICK_R,                   "LS-Right" },
+	{ 23, LSTICK_D,                   "LS-Down" },
+	{ 24, WIIU_PRO_CTRL_BUTTON_LS,    "LS" },
+	{ 25, WIIU_PRO_CTRL_BUTTON_RS,    "RS" },
 };
 
 static button_t analog_sources[] = {
@@ -103,7 +106,33 @@ static button_t menu_combos[] = {
 	{ 2, CLASSIC_CTRL_BUTTON_HOME, "Home" },
 };
 
-static unsigned int getButtons(classic_ctrl_t* controller, float maxLMag, float maxRMag)
+static int checkType(int Control, int type){
+	int err;
+	u32 expType;
+	err = WPAD_Probe(Control, &expType);
+
+	if(err != WPAD_ERR_NONE)
+		return -1;
+
+	switch(expType){
+	case WPAD_EXP_NONE:
+		controller_Wiimote.available[Control] = 1;
+		break;
+	case WPAD_EXP_NUNCHUK:
+		controller_WiimoteNunchuk.available[Control] = 1;
+		break;
+	case WPAD_EXP_CLASSIC:
+		controller_Classic.available[Control] = 1;
+		break;
+	case WPAD_EXP_WIIUPRO:
+		controller_WiiUPro.available[Control] = 1;
+		break;
+	}
+
+	return expType;
+}
+
+static unsigned int getButtonsCC(classic_ctrl_t* controller, float maxLMag, float maxRMag)
 {
 	unsigned int b = (unsigned)controller->btns;
 	s8 stickX      = getStickValue(&controller->ljs, maxLMag, STICK_X, 7);
@@ -111,38 +140,25 @@ static unsigned int getButtons(classic_ctrl_t* controller, float maxLMag, float 
 	s8 substickX   = getStickValue(&controller->rjs, maxRMag, STICK_X, 7);
 	s8 substickY   = getStickValue(&controller->rjs, maxRMag, STICK_Y, 7);
 	
-	if(stickX    < -3) b |= L_STICK_L;
-	if(stickX    >  3) b |= L_STICK_R;
-	if(stickY    >  3) b |= L_STICK_U;
-	if(stickY    < -3) b |= L_STICK_D;
+	if(stickX    < -3) b |= LSTICK_L;
+	if(stickX    >  3) b |= LSTICK_R;
+	if(stickY    >  3) b |= LSTICK_U;
+	if(stickY    < -3) b |= LSTICK_D;
 	
-	if(substickX < -3) b |= R_STICK_L;
-	if(substickX >  3) b |= R_STICK_R;
-	if(substickY >  3) b |= R_STICK_U;
-	if(substickY < -3) b |= R_STICK_D;
+	if(substickX < -3) b |= RSTICK_L;
+	if(substickX >  3) b |= RSTICK_R;
+	if(substickY >  3) b |= RSTICK_U;
+	if(substickY < -3) b |= RSTICK_D;
 	
 	return b;
 }
 
-static int available(int Control) {
-	int err;
-	u32 expType;
-	err = WPAD_Probe(Control, &expType);
-	if(err == WPAD_ERR_NONE &&
-	   expType == WPAD_EXP_CLASSIC){
-		controller_Classic.available[Control] = 1;
-		return 1;
-	} else {
+static int availableCC(int Control){
+	if(checkType(Control, WPAD_EXP_CLASSIC) != WPAD_EXP_CLASSIC){
 		controller_Classic.available[Control] = 0;
-		if(err == WPAD_ERR_NONE &&
-		   expType == WPAD_EXP_NUNCHUK){
-			controller_WiimoteNunchuk.available[Control] = 1;
-		}
-		else if (err == WPAD_ERR_NONE &&
-		   expType == WPAD_EXP_NONE){
-			controller_Wiimote.available[Control] = 1;
-		}
 		return 0;
+	} else {
+		return 1;
 	}
 }
 
@@ -193,7 +209,7 @@ static void SetMaxMag(const struct bd_addr *bdaddr, float magL, float magR, floa
 	*maxRMag = maxMagTable[match_ind].maxRMag;
 }
 
-static int _GetKeys(int Control, BUTTONS * Keys, controller_config_t* config)
+static int GetKeysCC(int Control, BUTTONS * Keys, controller_config_t* config)
 {
 	if(wpadNeedScan){ WPAD_ScanPads(); wpadNeedScan = 0; }
 	WPADData* wpad = WPAD_Data(Control);
@@ -201,7 +217,7 @@ static int _GetKeys(int Control, BUTTONS * Keys, controller_config_t* config)
 	memset(c, 0, sizeof(BUTTONS));
 
 	// Only use a connected classic controller
-	if(!available(Control))
+	if(!availableCC(Control))
 		return 0;
 
 	//Look up BT address
@@ -211,7 +227,7 @@ static int _GetKeys(int Control, BUTTONS * Keys, controller_config_t* config)
 	float maxRMag = DEFAULT_MAX_MAG; 
 	//if(wm) SetMaxMag(&wm->bdaddr, wpad->exp.classic.ljs.mag, wpad->exp.classic.rjs.mag, &maxLMag, &maxRMag);
 	
-	unsigned int b = getButtons(&wpad->exp.classic, maxLMag, maxRMag);
+	unsigned int b = getButtonsCC(&wpad->exp.classic, maxLMag, maxRMag);
 	inline int isHeld(button_tp button){
 		return (b & button->mask) == button->mask;
 	}
@@ -234,11 +250,11 @@ static int _GetKeys(int Control, BUTTONS * Keys, controller_config_t* config)
 	c->D_CBUTTON    = isHeld(config->CD);
 	c->U_CBUTTON    = isHeld(config->CU);
 
-	if(config->analog->mask == L_STICK_AS_ANALOG){
+	if(config->analog->mask == LSTICK_AS_ANALOG){
 		c->X_AXIS = getStickValue(&wpad->exp.classic.ljs, maxLMag, STICK_X, 80);
 		c->Y_AXIS = getStickValue(&wpad->exp.classic.ljs, maxLMag, STICK_Y, 80);
 		//sprintf(txtbuffer,"GetKeys: ctr %d, ang %f, mag %f, max %f, posx %x, posy %x, x %d, y %d", Control, wpad->exp.classic.ljs.ang, wpad->exp.classic.ljs.mag, maxLMag, wpad->exp.classic.ljs.pos.x, wpad->exp.classic.ljs.pos.y, c->X_AXIS, c->Y_AXIS);
-	} else if(config->analog->mask == R_STICK_AS_ANALOG){
+	} else if(config->analog->mask == RSTICK_AS_ANALOG){
 		c->X_AXIS = getStickValue(&wpad->exp.classic.rjs, maxRMag, STICK_X, 80);
 		c->Y_AXIS = getStickValue(&wpad->exp.classic.rjs, maxRMag, STICK_Y, 80);
 		//sprintf(txtbuffer,"GetKeys: ctr %d, ang %f, mag %f, max %f, posx %x, posy %x, x %d, y %d", Control, wpad->exp.classic.rjs.ang, wpad->exp.classic.rjs.mag, maxRMag, wpad->exp.classic.rjs.pos.x, wpad->exp.classic.rjs.pos.y, c->X_AXIS, c->Y_AXIS);
@@ -246,6 +262,99 @@ static int _GetKeys(int Control, BUTTONS * Keys, controller_config_t* config)
 	if(config->invertedY) c->Y_AXIS = -c->Y_AXIS;
 
 	//DEBUG_print(txtbuffer,DBG_RSPINFO1+Control);
+
+	// Return whether the exit button(s) are pressed
+	return isHeld(config->exit);
+}
+
+static unsigned int getButtonsWUP(wiiu_pro_ctrl_t* controller)
+{
+	unsigned int b = controller->btns;
+
+	float stickX    = getStickValue(&controller->ljs, STICK_X, 1);
+	float stickY    = getStickValue(&controller->ljs, STICK_Y, 1);
+	float substickX = getStickValue(&controller->rjs, STICK_X, 1);
+	float substickY = getStickValue(&controller->rjs, STICK_Y, 1);
+
+	if(stickX    < -.5) b |= LSTICK_L;
+	if(stickX    >  .5) b |= LSTICK_R;
+	if(stickY    >  .5) b |= LSTICK_U;
+	if(stickY    < -.5) b |= LSTICK_D;
+
+	if(substickX < -.5) b |= RSTICK_L;
+	if(substickX >  .5) b |= RSTICK_R;
+	if(substickY >  .5) b |= RSTICK_U;
+	if(substickY < -.5) b |= RSTICK_D;
+
+	return b;
+}
+
+static int availableWUP(int Control){
+	if(checkType(Control, WPAD_EXP_WIIUPRO) != WPAD_EXP_WIIUPRO){
+		controller_WiiUPro.available[Control] = 0;
+		return 0;
+	} else {
+		return 1;
+	}
+}
+
+static int GetKeysWUP(int Control, BUTTONS * Keys, controller_config_t* config)
+{
+	WPADData* wpad = WPAD_Data(Control);
+	BUTTONS* c = Keys;
+	memset(c, 0, sizeof(BUTTONS));
+
+	// Only use a connected wiiu pro controller
+	if(!availableWUP(Control))
+		return 0;
+
+	WPAD_ReadPending(Control, NULL);
+
+	unsigned int b = getButtonsWUP(&wpad->exp.wup);
+	inline int isHeld(button_tp button){
+		return (b & button->mask) == button->mask;
+	}
+
+	c->R_DPAD       = isHeld(config->DR);
+	c->L_DPAD       = isHeld(config->DL);
+	c->D_DPAD       = isHeld(config->DD);
+	c->U_DPAD       = isHeld(config->DU);
+
+	c->START_BUTTON = isHeld(config->START);
+	c->B_BUTTON     = isHeld(config->B);
+	c->A_BUTTON     = isHeld(config->A);
+
+	c->Z_TRIG       = isHeld(config->Z);
+	c->R_TRIG       = isHeld(config->R);
+	c->L_TRIG       = isHeld(config->L);
+
+	c->R_CBUTTON    = isHeld(config->CR);
+	c->L_CBUTTON    = isHeld(config->CL);
+	c->D_CBUTTON    = isHeld(config->CD);
+	c->U_CBUTTON    = isHeld(config->CU);
+
+	if(config->analog->mask == LSTICK_AS_ANALOG){
+		c->X_AXIS = getStickValue(&wpad->exp.wup.ljs, STICK_X, 80);
+		c->Y_AXIS = getStickValue(&wpad->exp.wup.ljs, STICK_Y, 80);
+	} else if(config->analog->mask == RSTICK_AS_ANALOG){
+		c->X_AXIS = getStickValue(&wpad->exp.wup.rjs, STICK_X, 80);
+		c->Y_AXIS = getStickValue(&wpad->exp.wup.rjs, STICK_Y, 80);
+	} else if(config->analog->mask == BUTTON_AS_ANALOG){
+		if(b & WIIU_PRO_CTRL_BUTTON_RIGHT)
+			c->X_AXIS = +80;
+		else if(b & WIIU_PRO_CTRL_BUTTON_LEFT)
+			c->X_AXIS = -80;
+		else
+			c->X_AXIS = 0;
+
+		if(b & WIIU_PRO_CTRL_BUTTON_UP)
+			c->Y_AXIS = +80;
+		else if(b & WIIU_PRO_CTRL_BUTTON_DOWN)
+			c->Y_AXIS = -80;
+		else
+			c->Y_AXIS = 0;
+	}
+	if(config->invertedY) c->Y_AXIS = -c->Y_AXIS;
 
 	// Return whether the exit button(s) are pressed
 	return isHeld(config->exit);
@@ -269,20 +378,20 @@ static void assign(int p, int v){
 	// TODO: Light up the LEDs appropriately
 }
 
-static void init(void);
-static void refreshAvailable(void);
+static void refreshAvailableCC(void);
+static void refreshAvailableWUP(void);
 
 controller_t controller_Classic =
 	{ 'C',
-	  _GetKeys,
+	  GetKeysCC,
 	  configure,
 	  assign,
 	  pause,
 	  resume,
 	  rumble,
-	  refreshAvailable,
+	  refreshAvailableCC,
 	  {0, 0, 0, 0},
-	  sizeof(buttons)/sizeof(buttons[0]),
+	  NUM_CLASSIC_BUTTONS,
 	  buttons,
 	  sizeof(analog_sources)/sizeof(analog_sources[0]),
 	  analog_sources,
@@ -308,18 +417,52 @@ controller_t controller_Classic =
 	  }
 	 };
 
-static void refreshAvailable(void){
+controller_t controller_WiiUPro =
+	{ 'P',
+	  GetKeysWUP,
+	  configure,
+	  assign,
+	  pause,
+	  resume,
+	  rumble,
+	  refreshAvailableWUP,
+	  {0, 0, 0, 0},
+	  sizeof(buttons)/sizeof(buttons[0]),
+	  buttons,
+	  sizeof(analog_sources)/sizeof(analog_sources[0]),
+	  analog_sources,
+	  sizeof(menu_combos)/sizeof(menu_combos[0]),
+	  menu_combos,
+	  { .DU        = &buttons[1],  // D-Pad Up
+	    .DL        = &buttons[2],  // D-Pad Left
+	    .DR        = &buttons[3],  // D-Pad Right
+	    .DD        = &buttons[4],  // D-Pad Down
+	    .Z         = &buttons[7],  // Left Z
+	    .L         = &buttons[6],  // Right Trigger
+	    .R         = &buttons[8],  // Right Z
+	    .A         = &buttons[9],  // A
+	    .B         = &buttons[10], // B
+	    .START     = &buttons[13], // +
+	    .CU        = &buttons[16], // Right Stick Up
+	    .CL        = &buttons[17], // Right Stick Left
+	    .CR        = &buttons[18], // Right Stick Right
+	    .CD        = &buttons[19], // Right Stick Down
+	    .analog    = &analog_sources[0],
+	    .exit      = &menu_combos[2],
+	    .invertedY = 0,
+	  }
+	 };
 
-	int i, err;
-	u32 expType;
-	WPAD_ScanPads();
+static void refreshAvailableCC(void){
+	int i;
 	for(i=0; i<4; ++i){
-		err = WPAD_Probe(i, &expType);
-		if(err == WPAD_ERR_NONE &&
-		   expType == WPAD_EXP_CLASSIC){
-			controller_Classic.available[i] = 1;
-			WPAD_SetDataFormat(i, WPAD_DATA_EXPANSION);
-		} else
-			controller_Classic.available[i] = 0;
+		availableCC(i);
+	}
+}
+
+static void refreshAvailableWUP(void){
+	int i;
+	for(i=0; i<4; ++i){
+		availableWUP(i);
 	}
 }
