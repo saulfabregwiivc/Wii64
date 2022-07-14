@@ -189,6 +189,9 @@ static int checkType(int Control, int type){
 	case WPAD_EXP_CLASSIC:
 		controller_Classic.available[Control] = 1;
 		break;
+	case WPAD_EXP_WIIUPRO:
+		controller_WiiUPro.available[Control] = 1;
+		break;
 	}
 	
 	return expType;
