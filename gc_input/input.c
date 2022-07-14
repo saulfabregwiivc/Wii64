@@ -44,12 +44,12 @@ virtualControllers_t virtualControllers[4];
 controller_t* controller_ts[num_controller_t] =
 #if defined(WII)
 #if defined(RVL_LIBWIIDRC)
-	{ &controller_GC, &controller_Classic, &controller_DRC,
+	{ &controller_GC, &controller_WiiUPro, &controller_Classic, &controller_DRC,
 	  &controller_WiimoteNunchuk,
 	  &controller_Wiimote,
 	 };
 #else
-	{ &controller_GC, &controller_Classic,
+	{ &controller_GC, &controller_WiiUPro, &controller_Classic,
 	  &controller_WiimoteNunchuk,
 	  &controller_Wiimote,
 	 };
@@ -325,7 +325,8 @@ EXPORT void CALL WM_KeyDown( WPARAM wParam, LPARAM lParam )
 EXPORT void CALL WM_KeyUp( WPARAM wParam, LPARAM lParam )
 {
 }
-void pauseInput(void){
+
+void pauseInput(void){
 	int i;
 	for(i=0; i<4; ++i)
 		if(virtualControllers[i].inUse) DO_CONTROL(i, pause);
