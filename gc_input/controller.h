@@ -109,15 +109,16 @@ extern virtualControllers_t virtualControllers[4];
 // List of all the defined controller_t's
 #if defined(WII) 
 extern controller_t controller_GC;
+extern controller_t controller_WiiUPro;
 extern controller_t controller_Classic;
 extern controller_t controller_WiimoteNunchuk;
 extern controller_t controller_Wiimote;
 
 #if !defined(RVL_LIBWIIDRC)	// Wii
-#define num_controller_t 4
+#define num_controller_t 5
 #else
 extern controller_t controller_DRC;
-#define num_controller_t 5	// WiiVC
+#define num_controller_t 6	// WiiVC
 #endif
 
 #else // GameCube
