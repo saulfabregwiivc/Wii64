@@ -181,10 +181,10 @@ int rom_read(fileBrowser_file* file){
    // Swap country code back since I know the emulator relies on this being little endian.
   ROM_HEADER.Country_code = bswap16(ROM_HEADER.Country_code);
   //Copy header name as Goodname (in the .ini we can use CRC to identify ROMS)
-  memcpy(ROM_SETTINGS.goodname, ROM_HEADER.Name, 20);
-  ROM_SETTINGS.goodname[20] = '\0';
+  memset((char*)buffer,0,1024);
+  strncpy(buffer, (char*)ROM_HEADER.Name,20);
   //Maximum ROM name is 20 bytes. Lets make sure we cut off trailing spaces
-  for(i = strlen(ROM_SETTINGS.goodname); i>0; i--)
+  for(i = strlen(buffer); i>0; i--)
   {
     if(buffer[i-1] !=  ' ') {
   		strncpy(&ROM_SETTINGS.goodname[0],&buffer[0],i);
