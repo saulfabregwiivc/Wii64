@@ -123,19 +123,7 @@ void gSPCombineMatrices()
 	if (OGL.numTriangles)
 		OGL_DrawTriangles();
 	guMtx44Inverse( gSP.matrix.combined, OGL.GXprojTemp );
-
-	if (OGL.GXprojTemp[2][3] != 0.0f)
-	{
-		OGL.GXcombW[2][3] = GXprojZScale / OGL.GXprojTemp[2][3];
-		OGL.GXcombW[2][2] = -GXprojZOffset + (OGL.GXcombW[2][3] * OGL.GXprojTemp[3][3]);
-		OGL.GXuseCombW = true;
-		OGL.GXupdateMtx = true;
-	}
-	else
-	{
-		OGL.GXuseCombW = false;
-		OGL.GXupdateMtx = true;
-	}
+	OGL.GXupdateMtx = true;
 #endif //__GX__
 }
 
@@ -428,19 +416,7 @@ void gSPForceMatrix( u32 mptr )
 	if (OGL.numTriangles)
 		OGL_DrawTriangles();
 	guMtx44Inverse( gSP.matrix.combined, OGL.GXprojTemp );
-
-	if (OGL.GXprojTemp[2][3] != 0.0f)
-	{
-		OGL.GXcombW[2][3] = GXprojZScale / OGL.GXprojTemp[2][3];
-		OGL.GXcombW[2][2] = -GXprojZOffset + (OGL.GXcombW[2][3] * OGL.GXprojTemp[3][3]);
-		OGL.GXuseCombW = true;
-		OGL.GXupdateMtx = true;
-	}
-	else
-	{
-		OGL.GXuseCombW = false;
-		OGL.GXupdateMtx = true;
-	}
+	OGL.GXupdateMtx = true;
 #endif //__GX__
 
 	gSP.changed &= ~CHANGED_MATRIX;
@@ -1229,19 +1205,7 @@ void gSPInsertMatrix( u32 where, u32 num )
 		OGL_DrawTriangles();
 
 	guMtx44Inverse( gSP.matrix.combined, OGL.GXprojTemp );
-
-	if (OGL.GXprojTemp[2][3] != 0.0f)
-	{
-		OGL.GXcombW[2][3] = GXprojZScale / OGL.GXprojTemp[2][3];
-		OGL.GXcombW[2][2] = -GXprojZOffset + (OGL.GXcombW[2][3] * OGL.GXprojTemp[3][3]);
-		OGL.GXuseCombW = true;
-		OGL.GXupdateMtx = true;
-	}
-	else
-	{
-		OGL.GXuseCombW = false;
-		OGL.GXupdateMtx = true;
-	}
+	OGL.GXupdateMtx = true;
 #endif //__GX__
 
 #ifdef DEBUG
