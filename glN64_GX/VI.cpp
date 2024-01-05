@@ -83,6 +83,10 @@ void VI_UpdateSize()
 
 	if (VI.width == 0) VI.width = 320;
 	if (VI.height == 0) VI.height = 240;
+
+	// Interlace detection
+	if ((*REG.VI_STATUS>>6)&1)
+		VI.height*=2;
 }
 
 void VI_UpdateScreen()
