@@ -140,6 +140,7 @@ void VI_UpdateScreen()
 #endif
 		VI_GX_showFPS();
 		VI_GX_showDEBUG();
+		GX_SetCopyClear ((GXColor){0,0,0,255}, GX_MAX_Z24);
 		GX_CopyDisp(VI.xfb[VI.which_fb], GX_TRUE);
 		GX_SetDrawSync(VI.which_fb);
 	}
@@ -166,6 +167,7 @@ void VI_UpdateScreen()
 			VI_GX_showFPS();
 			VI_GX_showDEBUG();
 			//Copy EFB->XFB
+			GX_SetCopyClear ((GXColor){0,0,0,255}, GX_MAX_Z24);
 			GX_CopyDisp(VI.xfb[VI.which_fb], GX_TRUE);
 			GX_SetDrawSync(VI.which_fb);
 
@@ -186,6 +188,7 @@ void VI_UpdateScreen()
 #endif
 			VI_GX_showFPS();
 			VI_GX_showDEBUG();
+			GX_SetCopyClear ((GXColor){0,0,0,255}, GX_MAX_Z24);
 			GX_CopyDisp(VI.xfb[VI.which_fb], GX_TRUE);
 			GX_SetDrawSync(VI.which_fb);
 			gSP.changed &= ~CHANGED_COLORBUFFER;
@@ -222,7 +225,7 @@ unsigned int* VI_GX_getScreenPointer(){ return VI.xfb[VI.which_fb]; }
 
 void VI_GX_clearEFB(){
 	GX_SetZMode(GX_ENABLE,GX_ALWAYS,GX_TRUE);
-	GX_SetCopyClear ((GXColor){0,0,0,255}, 0xFFFFFF);
+	GX_SetCopyClear ((GXColor){0,0,0,255}, GX_MAX_Z24);
 	GX_CopyDisp (VI.xfb[VI.which_fb]+GX_xfb_offset, GX_TRUE);	//clear the EFB before executing new Dlist
 	GX_DrawDone(); //Wait until EFB->XFB copy is complete
 }
