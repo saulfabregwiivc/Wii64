@@ -156,7 +156,7 @@ void dma_pi_read()
 	// Not that it matters, but actual N64 hardware will repeat pi_dram_addr_reg>>16 
 	// over the unmapped ROM region past the end of ROM, which we don't do.
 	dma_length = (pi_register.pi_wr_len_reg & 0xFFFFFE)+2;
-	i = (pi_register.pi_cart_addr_reg-0x10000000)&0x3FFFFFE;
+	i = (pi_register.pi_cart_addr_reg-0x10000000)&0xFFFFFFE;
 	dma_length = (i + dma_length) > rom_length ? (rom_length - i) : dma_length;
 	dma_length = (pi_register.pi_dram_addr_reg + dma_length) > MEMMASK ?
 				 (MEMMASK - pi_register.pi_dram_addr_reg) : dma_length;
@@ -226,7 +226,7 @@ void dma_pi_write()
 	// Not that it matters, but actual N64 hardware will repeat pi_dram_addr_reg>>16 
 	// over the unmapped ROM region past the end of ROM, which we don't do.
 	dma_length = (pi_register.pi_wr_len_reg & 0xFFFFFE)+2;
-	i = (pi_register.pi_cart_addr_reg-0x10000000)&0x3FFFFFE;
+	i = (pi_register.pi_cart_addr_reg-0x10000000)&0xFFFFFFE;
 	dma_length = (i + dma_length) > rom_length ? (rom_length - i) : dma_length;
 	dma_length = (pi_register.pi_dram_addr_reg + dma_length) > MEMMASK ?
 				 (MEMMASK - pi_register.pi_dram_addr_reg) : dma_length;

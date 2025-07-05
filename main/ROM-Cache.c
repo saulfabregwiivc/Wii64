@@ -45,7 +45,7 @@ static int   ROMCacheSize = ROMCACHE_SIZE;
 #define BLOCK_MASK  (BLOCK_SIZE-1)
 #define OFFSET_MASK (0xFFFFFFFF-BLOCK_MASK)
 #define BLOCK_SHIFT (12)	//only change ME and BLOCK_SIZE
-#define MAX_ROMSIZE (64*1024*1024)
+#define MAX_ROMSIZE (256*1024*1024)
 #define NUM_BLOCKS  (MAX_ROMSIZE/BLOCK_SIZE)
 #define LOAD_SIZE   (4*1024)
 static char* ROMBlocks[NUM_BLOCKS];

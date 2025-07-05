@@ -2827,22 +2827,22 @@ void read_rom()
 		rom_written = 0;
 	}
 	else
-		word = sign_extended(*(unsigned long *)ROMCache_pointer(address & 0x3FFFFFF));
+		word = sign_extended(*(unsigned long *)ROMCache_pointer(address & 0xFFFFFFF));
 }
 
 void read_romb()
 {
-	byte = sign_extendedb(*(unsigned char *)ROMCache_pointer(address & 0x3FFFFFF));
+	byte = sign_extendedb(*(unsigned char *)ROMCache_pointer(address & 0xFFFFFFF));
 }
 
 void read_romh()
 {
-	hword = sign_extendedh(*(unsigned short *)ROMCache_pointer(address & 0x3FFFFFF));
+	hword = sign_extendedh(*(unsigned short *)ROMCache_pointer(address & 0xFFFFFFF));
 }
 
 void read_romd()
 {
-	dword = *(unsigned long long *)ROMCache_pointer(address & 0x3FFFFFF);
+	dword = *(unsigned long long *)ROMCache_pointer(address & 0xFFFFFFF);
 }
 
 void write_rom()
