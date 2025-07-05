@@ -37,7 +37,8 @@
 #ifdef HW_RVL
 #include "../gc_memory/MEM2.h"
 #include "../vm/wii_vm.h"
-static char* ROMBase = ROMCACHE_LO;
+static char* ROMCache = ROMCACHE_LO;
+static int   ROMCacheSize = ROMCACHE_SIZE;
 #else
 #include "../gc_memory/ARAM.h"
 #define BLOCK_SIZE  (4*1024)
@@ -82,8 +83,51 @@ void DUMMY_draw() { }
 void ROMCache_init(fileBrowser_file* f){
 	readBefore = 0; //de-init byteswapping
 	memcpy(&ROMFile, f, sizeof(fileBrowser_file));
-	ROMSize = f->size;
-	ROMTooBig = ROMSize > ROMCACHE_SIZE;
+	ROMSize = f->size;	
+	switch (SYS_GetPhysicalMem2Size()) {
+		default:
+			ROMCache = ROMCACHE_LO;
+			ROMCacheSize = ROMCACHE_SIZE;
+			break;
+		case 128*MB:
+			switch (SYS_GetSimulatedMem2Size()) {
+				case 128*MB:
+					ROMCache = ROMCACHE_128MB_LO;
+					ROMCacheSize = ROMCACHE_128MB_SIZE;
+					break;
+				case 64*MB:
+					ROMCache = ROMCACHE_64_128MB_LO;
+					ROMCacheSize = ROMCACHE_64_128MB_SIZE;
+					break;
+				default:
+					ROMCache = ROMCACHE_LO;
+					ROMCacheSize = ROMCACHE_SIZE;
+					break;
+			}
+			break;
+		case 256*MB:
+			switch (SYS_GetSimulatedMem2Size()) {
+				case 256*MB:
+					ROMCache = ROMCACHE_256MB_LO;
+					ROMCacheSize = ROMCACHE_256MB_SIZE;
+					break;
+				case 128*MB:
+					ROMCache = ROMCACHE_128_256MB_LO;
+					ROMCacheSize = ROMCACHE_128_256MB_SIZE;
+					break;
+				case 64*MB:
+					ROMCache = ROMCACHE_64_256MB_LO;
+					ROMCacheSize = ROMCACHE_64_256MB_SIZE;
+					break;
+				default:
+					ROMCache = ROMCACHE_LO;
+					ROMCacheSize = ROMCACHE_SIZE;
+					break;
+			}
+			break;
+	}
+	
+	ROMTooBig = ROMSize > ROMCacheSize;
 
 	romFile_seekFile(f, 0, FILE_BROWSER_SEEK_SET);	// Lets be nice and keep the file at 0.
 }
@@ -91,7 +135,7 @@ void ROMCache_init(fileBrowser_file* f){
 void ROMCache_deinit(){
 #ifdef HW_RVL
 	if (ROMTooBig) {
-		ROMBase = ROMCACHE_LO;
+		ROMCache = NULL;
 		VM_Deinit();
 	}
 #endif
@@ -99,7 +143,7 @@ void ROMCache_deinit(){
 
 void* ROMCache_pointer(u32 rom_offset){
 #ifdef HW_RVL
-	return ROMBase + rom_offset;
+	return ROMCache + rom_offset;
 #endif
 #ifdef HW_DOL
 #ifdef PROFILE
@@ -162,7 +206,7 @@ static void ensure_block(u32 block){
 
 void ROMCache_read(u8* ram_dest, u32 rom_offset, u32 length){
 #ifdef HW_RVL
-	memcpy(ram_dest, ROMBase + rom_offset, length);
+	memcpy(ram_dest, ROMCache + rom_offset, length);
 #endif
 #ifdef HW_DOL
 #ifdef PROFILE
@@ -222,17 +266,18 @@ int ROMCache_load(fileBrowser_file* file){
 		if (VMBase == NULL)
 			return ROM_CACHE_ERROR_READ;
 		
-		ROMBase = VMBase;
+		ROMCache = VMBase;
+		ROMCacheSize = ROMSize;
 	}
 	do {
-		bytes_read = romFile_readFile(file, ROMBase + i, 32*KB);
+		bytes_read = romFile_readFile(file, ROMCache + i, 32*KB);
 		if (bytes_read < 0)
 			return ROM_CACHE_ERROR_READ;
 		
 		//initialize byteswapping if it isn't already
 		if(!readBefore)
 		{
-			byte_swap_type = init_byte_swap(*(unsigned int*)ROMBase);
+			byte_swap_type = init_byte_swap(*(unsigned int*)ROMCache);
  			if(byte_swap_type == BYTE_SWAP_BAD) {
  			  romFile_deinit(&ROMFile);
  			  return ROM_CACHE_INVALID_ROM;
@@ -240,7 +285,7 @@ int ROMCache_load(fileBrowser_file* file){
  			readBefore = 1;
 		}
 		
-		byte_swap(ROMBase + i, bytes_read, byte_swap_type);
+		byte_swap(ROMCache + i, bytes_read, byte_swap_type);
 		i += bytes_read;
 		
 		if (!loads_til_update--) {
