@@ -942,7 +942,7 @@ static void TLBWR()
 {
 	unsigned int i;
 	update_count();
-	Random = (Count/2 % (32 - Wired)) + Wired;
+	Random = (Count / count_per_op % (32 - Wired)) + Wired;
 
 	if (r4300.tlb_e[Random].v_even){
 		for (i=r4300.tlb_e[Random].start_even; i<r4300.tlb_e[Random].end_even; i+=0x1000)
@@ -3209,7 +3209,6 @@ void prefetch()
 	}
 	else
     {
-	     print_gecko("execution &#65533; l'addresse :%x\n", (int)r4300.pc);
 	     r4300.stop=1;
 #ifdef DEBUGON
        _break();
