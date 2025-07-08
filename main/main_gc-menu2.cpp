@@ -68,6 +68,10 @@ extern "C" {
 #include "../vm/vm.h"
 #include "../gc_memory/ARAM.h"
 #endif
+
+#ifdef HW_RVL
+extern f32 SYS_GetCoreMultiplier();
+#endif
 }
 
 #ifdef WII
@@ -143,6 +147,7 @@ static struct {
   { "ScreenMode", &screenMode, SCREENMODE_4x3, SCREENMODE_16x9_PILLARBOX },
   { "VideoMode", &videoMode, VIDEOMODE_AUTO, VIDEOMODE_576P },
   { "Core", ((char*)&dynacore)+3, DYNACORE_INTERPRETER, DYNACORE_PURE_INTERP },
+  { "CountPerOp", ((char*)&count_per_op)+3, COUNT_PER_OP_1, COUNT_PER_OP_3 },
 #ifdef RVL_NANDPAGE
   { "NANDPage", &NANDPage, NANDPAGE_DISABLE, NANDPAGE_ENABLE },
 #endif
@@ -312,7 +317,13 @@ int main(int argc, char* argv[]) {
 #ifdef RVL_NANDPAGE
 	NANDPage         = 0; // NAND Pagefile
 #endif
-	screenMode		 = 0; // Stretch FB horizontally
+#ifndef HW_RVL
+	count_per_op	 = COUNT_PER_OP_3;
+	screenMode		 = SCREENMODE_4x3;
+#else
+	count_per_op	 = SYS_GetCoreMultiplier() < 5.0 ? COUNT_PER_OP_2 : COUNT_PER_OP_1;
+	screenMode		 = CONF_GetAspectRatio() == CONF_ASPECT_16_9 ? SCREENMODE_16x9_PILLARBOX : SCREENMODE_4x3;
+#endif
 	videoMode		 = VIDEOMODE_AUTO;
 	padAutoAssign	 = PADAUTOASSIGN_AUTOMATIC;
 	padType[0]		 = PADTYPE_NONE;

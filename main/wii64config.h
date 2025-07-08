@@ -106,6 +106,14 @@ enum dynacore
 	DYNACORE_PURE_INTERP
 };
 
+extern unsigned long count_per_op;
+enum count_per_op
+{
+	COUNT_PER_OP_1=1,
+	COUNT_PER_OP_2,
+	COUNT_PER_OP_3
+};
+
 #ifdef RVL_NANDPAGE
 extern char NANDPage;
 enum NANDPage
