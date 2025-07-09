@@ -172,7 +172,7 @@ void Func_Credits()
 #else
 	strcat(CreditsInfo,"Cube64-FIX94 Beta 1.2\n");
 #endif
-	strcat(CreditsInfo,"Unofficial saulfabreg Edition r1.2\n");
+	strcat(CreditsInfo,"Unofficial saulfabreg Edition r2\n");
 	strcat(CreditsInfo,"- Original Wii64 Team: -\n");
 	strcat(CreditsInfo,"tehpola - core\n");
 	strcat(CreditsInfo,"sepp256 - graphics & menu\n");
