@@ -177,12 +177,11 @@ void Func_Credits()
 	strcat(CreditsInfo,"tehpola - core\n");
 	strcat(CreditsInfo,"sepp256 - graphics & menu\n");
 	strcat(CreditsInfo,"emu_kidid - general coding\n");
-	strcat(CreditsInfo,"\n");
-	strcat(CreditsInfo,"- Special thanks to:\n");
+	strcat(CreditsInfo,"- Special thanks to: -\n");
 	strcat(CreditsInfo,"drmr - for menu graphics\n");
 	strcat(CreditsInfo,"Hacktarux - for Mupen64\n");
-	strcat(CreditsInfo,"FIX94 - original Wii64 mod\n");
 	strcat(CreditsInfo,"WinterMute/Shagkur - devkitPro/libOGC\n");
+	strcat(CreditsInfo,"FIX94 - original Wii64 mod\n");
 #ifdef HW_RVL
 	strcat(CreditsInfo,"Team Twiizers - for Wii homebrew\n");
 #endif
